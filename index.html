@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Reserva de Números</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; }
+    .grid { display: flex; flex-wrap: wrap; gap: 10px; }
+    button { padding: 10px 15px; cursor: pointer; }
+    .error { color: red; }
+    .ok { color: green; }
+  </style>
+</head>
+<body>
+  <h1>Reservar Número</h1>
+  <div id="lista" class="grid"></div>
+  <div id="formulario" style="display:none;">
+    <p>Reservando número <b id="numSel"></b></p>
+    <label>Tu nombre: <input type="text" id="nombre"></label><br>
+    <label>Tu WhatsApp: <input type="text" id="whatsapp"></label><br>
+    <button onclick="confirmarReserva()">Confirmar</button>
+    <button onclick="cancelar()">Cancelar</button>
+    <div id="mensaje"></div>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxulAKsRfdtfUQ4TG6Nfob2wBvn5lfKYSHXl7WK5XCHocVdpHfdGPKICyQXYQYKTOuLzg/exec"; // pega aquí la URL del WebApp
+    let numeroSeleccionado = null;
+
+    async function cargarDisponibles() {
+      const resp = await fetch(API_URL);
+      const disponibles = await resp.json();
+      const lista = document.getElementById("lista");
+      lista.innerHTML = "";
+      disponibles.forEach(num => {
+        const btn = document.createElement("button");
+        btn.innerText = num;
+        btn.onclick = () => seleccionarNumero(num);
+        lista.appendChild(btn);
+      });
+    }
+
+    function seleccionarNumero(num) {
+      numeroSeleccionado = num;
+      document.getElementById("numSel").innerText = num;
+      document.getElementById("formulario").style.display = "block";
+    }
+
+    function cancelar() {
+      document.getElementById("formulario").style.display = "none";
+      document.getElementById("mensaje").innerHTML = "";
+      cargarDisponibles();
+    }
+
+    async function confirmarReserva() {
+      const nombre = document.getElementById("nombre").value;
+      const whatsapp = document.getElementById("whatsapp").value;
+
+      const resp = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ numero: numeroSeleccionado, nombre, whatsapp })
+      });
+
+      const result = await resp.json();
+      const msgDiv = document.getElementById("mensaje");
+
+      if (result.ok) {
+        msgDiv.innerHTML = `<p class="ok">✅ Número ${numeroSeleccionado} reservado correctamente.</p>`;
+        setTimeout(() => cancelar(), 2000); // volver a lista después de 2s
+      } else {
+        msgDiv.innerHTML = `<p class="error">❌ ${result.error}</p>`;
+        setTimeout(() => cancelar(), 2000); // refrescar lista y permitir nuevo intento
+      }
+    }
+
+    // cargar lista al abrir
+    cargarDisponibles();
+  </script>
+</body>
+</html>
