@@ -4,46 +4,111 @@
   <meta charset="UTF-8">
   <title>Reserva de Números</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 2em; }
-    .grid { display: flex; flex-wrap: wrap; gap: 10px; }
-    button { padding: 10px 15px; cursor: pointer; }
-    .error { color: red; }
-    .ok { color: green; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 2em;
+      background: #f9fafb;
+      color: #333;
+      text-align: center;
+    }
+    h1 {
+      color: #2c3e50;
+    }
+    #lista {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+      gap: 10px;
+      margin-top: 20px;
+    }
+    button {
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      background-color: #3498db;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    #formulario {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: white;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    input {
+      padding: 8px;
+      margin: 5px 0;
+      width: 90%;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .error { color: #e74c3c; margin-top: 10px; }
+    .ok { color: #27ae60; margin-top: 10px; }
+    #loading {
+      margin-top: 20px;
+      font-style: italic;
+      color: #555;
+    }
   </style>
 </head>
 <body>
-  <h1>Reservar Número</h1>
-  <div id="lista" class="grid"></div>
+  <h1>🎟️ Reserva tu número</h1>
+
+  <div id="loading">⏳ Cargando números disponibles...</div>
+  <div id="lista"></div>
+
   <div id="formulario" style="display:none;">
     <p>Reservando número <b id="numSel"></b></p>
-    <label>Tu nombre: <input type="text" id="nombre"></label><br>
-    <label>Tu WhatsApp: <input type="text" id="whatsapp"></label><br>
+    <input type="text" id="nombre" placeholder="Tu nombre"><br>
+    <input type="text" id="whatsapp" placeholder="Tu WhatsApp"><br>
     <button onclick="confirmarReserva()">Confirmar</button>
-    <button onclick="cancelar()">Cancelar</button>
+    <button style="background:#7f8c8d;" onclick="cancelar()">Cancelar</button>
     <div id="mensaje"></div>
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxulAKsRfdtfUQ4TG6Nfob2wBvn5lfKYSHXl7WK5XCHocVdpHfdGPKICyQXYQYKTOuLzg/exec"; // pega aquí la URL del WebApp
+    const API_URL = "https://script.google.com/macros/s/AKfycbxulAKsRfdtfUQ4TG6Nfob2wBvn5lfKYSHXl7WK5XCHocVdpHfdGPKICyQXYQYKTOuLzg/exec"; // ⚡ Reemplazar con tu WebApp /exec
     let numeroSeleccionado = null;
 
     async function cargarDisponibles() {
-      const resp = await fetch(API_URL);
-      const disponibles = await resp.json();
-      const lista = document.getElementById("lista");
-      lista.innerHTML = "";
-      disponibles.forEach(num => {
-        const btn = document.createElement("button");
-        btn.innerText = num;
-        btn.onclick = () => seleccionarNumero(num);
-        lista.appendChild(btn);
-      });
+      document.getElementById("loading").style.display = "block";
+      document.getElementById("lista").innerHTML = "";
+
+      try {
+        const resp = await fetch(API_URL);
+        const disponibles = await resp.json();
+        const lista = document.getElementById("lista");
+        lista.innerHTML = "";
+        disponibles.forEach(num => {
+          const btn = document.createElement("button");
+          btn.innerText = num;
+          btn.onclick = () => seleccionarNumero(num);
+          lista.appendChild(btn);
+        });
+        if (disponibles.length === 0) {
+          lista.innerHTML = "<p class='error'>❌ No hay números disponibles.</p>";
+        }
+      } catch (e) {
+        document.getElementById("lista").innerHTML = "<p class='error'>⚠️ Error cargando los números.</p>";
+      } finally {
+        document.getElementById("loading").style.display = "none";
+      }
     }
 
     function seleccionarNumero(num) {
       numeroSeleccionado = num;
       document.getElementById("numSel").innerText = num;
       document.getElementById("formulario").style.display = "block";
+      document.getElementById("mensaje").innerHTML = "";
     }
 
     function cancelar() {
@@ -53,8 +118,13 @@
     }
 
     async function confirmarReserva() {
-      const nombre = document.getElementById("nombre").value;
-      const whatsapp = document.getElementById("whatsapp").value;
+      const nombre = document.getElementById("nombre").value.trim();
+      const whatsapp = document.getElementById("whatsapp").value.trim();
+
+      if (!nombre || !whatsapp) {
+        document.getElementById("mensaje").innerHTML = "<p class='error'>⚠️ Completa todos los campos.</p>";
+        return;
+      }
 
       const resp = await fetch(API_URL, {
         method: "POST",
@@ -66,10 +136,10 @@
 
       if (result.ok) {
         msgDiv.innerHTML = `<p class="ok">✅ Número ${numeroSeleccionado} reservado correctamente.</p>`;
-        setTimeout(() => cancelar(), 2000); // volver a lista después de 2s
+        setTimeout(() => cancelar(), 2000);
       } else {
         msgDiv.innerHTML = `<p class="error">❌ ${result.error}</p>`;
-        setTimeout(() => cancelar(), 2000); // refrescar lista y permitir nuevo intento
+        setTimeout(() => cancelar(), 2000);
       }
     }
 
