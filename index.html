@@ -2,57 +2,82 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reserva de Números</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 2em;
+      margin: 1em;
       background: #f9fafb;
       color: #333;
       text-align: center;
     }
     h1 {
       color: #2c3e50;
+      font-size: clamp(20px, 4vw, 32px);
     }
 
-    /* Mensaje de carga */
     #loading {
       margin-top: 20px;
       font-style: italic;
       color: #555;
     }
 
-    /* Grid de números */
+    /* Barra de búsqueda */
+    #buscador {
+      margin: 15px 0;
+    }
+    #buscador input {
+      padding: 10px;
+      width: 150px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    #buscador button {
+      padding: 10px 15px;
+      margin-left: 5px;
+      border: none;
+      border-radius: 6px;
+      background-color: #27ae60;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    #buscador button:hover {
+      background-color: #219150;
+    }
+
+    /* Grid adaptable */
     #lista {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
       gap: 10px;
       margin-top: 20px;
     }
 
-    /* Botones de números */
-    button {
+    button.numero {
       padding: 15px;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       background-color: #3498db;
       color: white;
-      font-size: 16px;
+      font-size: clamp(14px, 3vw, 18px);
       font-weight: bold;
       cursor: pointer;
       transition: background 0.2s ease, transform 0.1s ease;
     }
-    button:hover {
+    button.numero:hover {
       background-color: #2980b9;
       transform: scale(1.05);
     }
 
-    /* Estilos del formulario */
+    /* Formulario */
     #formulario {
       margin-top: 20px;
       padding: 15px;
       border: 1px solid #ddd;
-      border-radius: 8px;
+      border-radius: 12px;
       background: white;
       max-width: 400px;
       margin-left: auto;
@@ -61,37 +86,29 @@
     }
 
     input {
-      padding: 10px;
+      padding: 12px;
       margin: 8px 0;
-      width: 95%;
+      width: 100%;
       border: 1px solid #ccc;
       border-radius: 6px;
-      font-size: 14px;
+      font-size: 16px;
     }
 
     .error { color: #e74c3c; margin-top: 10px; }
     .ok { color: #27ae60; margin-top: 10px; }
 
-    /* 🔹 Responsivo */
-    @media (max-width: 768px) {
+    @media (max-width: 600px) {
       #lista {
-        grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+        grid-template-columns: repeat(3, 1fr);
         gap: 8px;
       }
-      button {
+      button.numero {
         padding: 12px;
-        font-size: 14px;
+        font-size: 16px;
       }
-    }
-
-    @media (max-width: 480px) {
-      #lista {
-        grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
-        gap: 6px;
-      }
-      button {
+      #formulario {
+        width: 95%;
         padding: 10px;
-        font-size: 12px;
       }
     }
   </style>
@@ -99,13 +116,18 @@
 <body>
   <h1>🎟️ Reserva tu número</h1>
 
+  <div id="buscador">
+    <input type="number" id="numBuscar" placeholder="N° a buscar">
+    <button onclick="buscarNumero()">Buscar</button>
+  </div>
+
   <div id="loading">⏳ Cargando números disponibles...</div>
   <div id="lista"></div>
 
   <div id="formulario" style="display:none;">
     <p>Reservando número <b id="numSel"></b></p>
-    <input type="text" id="nombre" placeholder="Tu nombre"><br>
-    <input type="text" id="whatsapp" placeholder="Tu WhatsApp"><br>
+    <input type="text" id="nombre" placeholder="Tu nombre">
+    <input type="text" id="whatsapp" placeholder="Tu WhatsApp">
     <button onclick="confirmarReserva()">Confirmar</button>
     <button style="background:#7f8c8d;" onclick="cancelar()">Cancelar</button>
     <div id="mensaje"></div>
@@ -114,6 +136,7 @@
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxulAKsRfdtfUQ4TG6Nfob2wBvn5lfKYSHXl7WK5XCHocVdpHfdGPKICyQXYQYKTOuLzg/exec"; // ⚡ Reemplazar con tu WebApp /exec
     let numeroSeleccionado = null;
+    let disponiblesGlobal = [];
 
     async function cargarDisponibles() {
       document.getElementById("loading").style.display = "block";
@@ -121,22 +144,38 @@
 
       try {
         const resp = await fetch(API_URL);
-        const disponibles = await resp.json();
-        const lista = document.getElementById("lista");
-        lista.innerHTML = "";
-        disponibles.forEach(num => {
-          const btn = document.createElement("button");
-          btn.innerText = num;
-          btn.onclick = () => seleccionarNumero(num);
-          lista.appendChild(btn);
-        });
-        if (disponibles.length === 0) {
-          lista.innerHTML = "<p class='error'>❌ No hay números disponibles.</p>";
-        }
+        disponiblesGlobal = await resp.json();
+        mostrarLista(disponiblesGlobal);
       } catch (e) {
         document.getElementById("lista").innerHTML = "<p class='error'>⚠️ Error cargando los números.</p>";
       } finally {
         document.getElementById("loading").style.display = "none";
+      }
+    }
+
+    function mostrarLista(numeros) {
+      const lista = document.getElementById("lista");
+      lista.innerHTML = "";
+      if (numeros.length === 0) {
+        lista.innerHTML = "<p class='error'>❌ No hay números disponibles.</p>";
+        return;
+      }
+      numeros.forEach(num => {
+        const btn = document.createElement("button");
+        btn.className = "numero";
+        btn.innerText = num;
+        btn.onclick = () => seleccionarNumero(num);
+        lista.appendChild(btn);
+      });
+    }
+
+    function buscarNumero() {
+      const num = parseInt(document.getElementById("numBuscar").value);
+      if (!num) return;
+      if (disponiblesGlobal.includes(num)) {
+        mostrarLista([num]);
+      } else {
+        document.getElementById("lista").innerHTML = "<p class='error'>❌ Número no disponible.</p>";
       }
     }
 
@@ -150,7 +189,7 @@
     function cancelar() {
       document.getElementById("formulario").style.display = "none";
       document.getElementById("mensaje").innerHTML = "";
-      cargarDisponibles();
+      mostrarLista(disponiblesGlobal);
     }
 
     async function confirmarReserva() {
@@ -173,9 +212,11 @@
       if (result.ok) {
         msgDiv.innerHTML = `<p class="ok">✅ Número ${numeroSeleccionado} reservado correctamente.</p>`;
         setTimeout(() => cancelar(), 2000);
+        cargarDisponibles(); // refrescar lista
       } else {
         msgDiv.innerHTML = `<p class="error">❌ ${result.error}</p>`;
         setTimeout(() => cancelar(), 2000);
+        cargarDisponibles(); // refrescar lista
       }
     }
 
