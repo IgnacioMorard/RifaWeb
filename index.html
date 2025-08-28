@@ -198,6 +198,9 @@
       document.getElementById("numSel").innerText = num;
       document.getElementById("formulario").style.display = "block";
       document.getElementById("mensaje").innerHTML = "";
+
+      // 🔽 Llevar al usuario hasta el formulario
+      document.getElementById("formulario").scrollIntoView({ behavior: "smooth" });
     }
 
     function cancelar() {
@@ -239,3 +242,4 @@
   </script>
 </body>
 </html>
+
