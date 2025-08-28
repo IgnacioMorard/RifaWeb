@@ -27,25 +27,29 @@
     #buscador {
       margin: 15px 0;
     }
-    #buscador input {
+    #buscador input, #buscador button {
       padding: 10px;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    #buscador input {
       width: 150px;
       border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 14px;
     }
     #buscador button {
-      padding: 10px 15px;
-      margin-left: 5px;
       border: none;
-      border-radius: 6px;
+      margin-left: 5px;
       background-color: #27ae60;
       color: white;
-      font-size: 14px;
       cursor: pointer;
+      transition: background 0.2s;
     }
-    #buscador button:hover {
+    #buscador button:hover:enabled {
       background-color: #219150;
+    }
+    #buscador button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
     }
 
     /* Grid adaptable */
@@ -117,8 +121,8 @@
   <h1>🎟️ Reserva tu número</h1>
 
   <div id="buscador">
-    <input type="number" id="numBuscar" placeholder="N° a buscar">
-    <button onclick="buscarNumero()">Buscar</button>
+    <input type="number" id="numBuscar" placeholder="N° a buscar" disabled>
+    <button id="btnBuscar" onclick="buscarNumero()" disabled>Buscar</button>
   </div>
 
   <div id="loading">⏳ Cargando números disponibles...</div>
@@ -139,6 +143,10 @@
     let disponiblesGlobal = [];
 
     async function cargarDisponibles() {
+      // Desactivar buscador
+      document.getElementById("numBuscar").disabled = true;
+      document.getElementById("btnBuscar").disabled = true;
+
       document.getElementById("loading").style.display = "block";
       document.getElementById("lista").innerHTML = "";
 
@@ -146,6 +154,12 @@
         const resp = await fetch(API_URL);
         disponiblesGlobal = await resp.json();
         mostrarLista(disponiblesGlobal);
+
+        // Activar buscador solo si hay números
+        if (disponiblesGlobal.length > 0) {
+          document.getElementById("numBuscar").disabled = false;
+          document.getElementById("btnBuscar").disabled = false;
+        }
       } catch (e) {
         document.getElementById("lista").innerHTML = "<p class='error'>⚠️ Error cargando los números.</p>";
       } finally {
@@ -212,11 +226,11 @@
       if (result.ok) {
         msgDiv.innerHTML = `<p class="ok">✅ Número ${numeroSeleccionado} reservado correctamente.</p>`;
         setTimeout(() => cancelar(), 2000);
-        cargarDisponibles(); // refrescar lista
+        cargarDisponibles();
       } else {
         msgDiv.innerHTML = `<p class="error">❌ ${result.error}</p>`;
         setTimeout(() => cancelar(), 2000);
-        cargarDisponibles(); // refrescar lista
+        cargarDisponibles();
       }
     }
 
